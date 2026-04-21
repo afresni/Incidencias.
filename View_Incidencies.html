@@ -1,0 +1,55 @@
+<template id="view-incidencies-template">
+  <section class="card">
+    <div class="actions" style="margin-top:0;">
+      <button type="button" class="btn-secondary" data-nav="home">← Tornar a l’inici</button>
+    </div>
+    <h2 class="section-title" id="incidencies-title">Incidències</h2>
+    <p class="muted" id="incidencies-subtitle">
+      Registra una incidència de manera ràpida.
+    </p>
+  </section>
+
+  <section class="card">
+    <h3 class="section-title">Nova incidència</h3>
+
+    <form id="incidencies-form" novalidate>
+      <div class="row cols-2">
+        <div>
+          <label for="inc-espai">Espai</label>
+          <input type="text" id="inc-espai" name="espai" />
+        </div>
+        <div>
+          <label for="inc-element-afectat">Element afectat</label>
+          <input type="text" id="inc-element-afectat" name="element_afectat" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="inc-descripcio">Descripció *</label>
+          <textarea id="inc-descripcio" name="descripcio" required></textarea>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="inc-observacions">Observacions</label>
+          <textarea id="inc-observacions" name="observacions"></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="inc-submit-btn">Enviar incidència</button>
+      </div>
+    </form>
+
+    <div id="incidencies-message" class="message hidden" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <h3 class="section-title">Llistat de registres</h3>
+    <div id="incidencies-list-container" class="muted">
+      Encara no hi ha registres per mostrar.
+    </div>
+  </section>
+</template>

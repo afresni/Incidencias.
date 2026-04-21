@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ca">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><?= APP_CONFIG.APP.NAME ?></title>
+
+    <?!= HtmlService.createHtmlOutputFromFile('Styles').getContent(); ?>
+  </head>
+  <body>
+    <header class="app-header">
+      <h1 class="app-title"><?= APP_CONFIG.APP.NAME ?></h1>
+    </header>
+
+    <main id="app-root" class="app-main">
+      <!-- El contenido dinámico se renderiza desde Client_App.html -->
+    </main>
+
+    <!-- Vistas -->
+    <?!= HtmlService.createHtmlOutputFromFile('View_Home').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('View_Incidencies').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('View_Compres').getContent(); ?>
+
+    <!-- Cliente -->
+    <?!= HtmlService.createHtmlOutputFromFile('Client_API').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('Client_App').getContent(); ?>
+  </body>
+</html>

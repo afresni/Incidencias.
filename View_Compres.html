@@ -1,0 +1,55 @@
+<template id="view-compres-template">
+  <section class="card">
+    <div class="actions" style="margin-top:0;">
+      <button type="button" class="btn-secondary" data-nav="home">← Tornar a l’inici</button>
+    </div>
+    <h2 class="section-title">Compres</h2>
+    <p class="muted">
+      Registra una sol·licitud de compra de forma ràpida i fes-ne seguiment de l’estat.
+    </p>
+  </section>
+
+  <section class="card">
+    <h3 class="section-title">Nova sol·licitud</h3>
+
+    <form id="compres-form" novalidate>
+      <div class="row">
+        <div>
+          <label for="comp-material">Material sol·licitat *</label>
+          <input type="text" id="comp-material" name="material_sollicitat" required />
+        </div>
+      </div>
+
+      <div class="row cols-2">
+        <div>
+          <label for="comp-espai">Espai</label>
+          <input type="text" id="comp-espai" name="espai" />
+        </div>
+        <div>
+          <label for="comp-enllac">Enllaç o referència</label>
+          <input type="url" id="comp-enllac" name="enllac_referencia" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="comp-observacions">Observacions</label>
+          <textarea id="comp-observacions" name="observacions"></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" id="comp-submit-btn">Enviar sol·licitud</button>
+      </div>
+    </form>
+
+    <div id="compres-message" class="message hidden" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card">
+    <h3 class="section-title">Llistat de registres</h3>
+    <div id="compres-list-container" class="muted">
+      Encara no hi ha registres per mostrar.
+    </div>
+  </section>
+</template>

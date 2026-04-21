@@ -1,0 +1,97 @@
+<script>
+  /**
+   * Client_API.html
+   * Capa cliente simple para llamadas a controladores GAS con promesas.
+   * Sin lógica de interfaz.
+   */
+  (function (global) {
+    'use strict';
+
+    /**
+     * Ejecuta una función server-side de GAS y devuelve Promise.
+     * @param {string} fnName
+     * @param {...*} args
+     * @returns {Promise<*>}
+     */
+    function runServer(fnName, ...args) {
+      return new Promise((resolve, reject) => {
+        const gsrAvailable =
+          typeof google !== 'undefined' &&
+          google &&
+          google.script &&
+          google.script.run;
+
+        if (!gsrAvailable) {
+          reject(new Error('google.script.run no està disponible.'));
+          return;
+        }
+
+        const runner = google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler((err) => {
+            const message =
+              (err && err.message) ? err.message : String(err || 'Error desconegut');
+            reject(new Error(message));
+          });
+
+        if (typeof runner[fnName] !== 'function') {
+          reject(new Error(`Funció de servidor no trobada: ${fnName}`));
+          return;
+        }
+
+        runner[fnName](...args);
+      });
+    }
+
+    /**
+     * API pública para frontend.
+     */
+    const Api = {
+      // Common
+      getCurrentUser() {
+        return runServer('controllerCommon_getCurrentUser');
+      },
+
+      ping() {
+        return runServer('controllerCommon_ping');
+      },
+
+      // Incidències
+      createIncidencia(modul, payload) {
+        return runServer('controllerIncidencies_create', modul, payload || {});
+      },
+
+      getIncidenciaById(modul, idRegistre) {
+        return runServer('controllerIncidencies_getById', modul, idRegistre);
+      },
+
+      listIncidencies(modul, filters) {
+        return runServer('controllerIncidencies_list', modul, filters || {});
+      },
+
+      changeIncidenciaState(modul, idRegistre, newState) {
+        return runServer('controllerIncidencies_changeState', modul, idRegistre, newState);
+      },
+
+      // Compres
+      createCompra(payload) {
+        return runServer('controllerCompres_create', payload || {});
+      },
+
+      getCompraById(idRegistre) {
+        return runServer('controllerCompres_getById', idRegistre);
+      },
+
+      listCompres(filters) {
+        return runServer('controllerCompres_list', filters || {});
+      },
+
+      changeCompraState(idRegistre, newState) {
+        return runServer('controllerCompres_changeState', idRegistre, newState);
+      },
+    };
+
+    // Exposición global controlada
+    global.AppApi = Api;
+  })(window);
+</script>

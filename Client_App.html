@@ -1,0 +1,332 @@
+<script>
+  /**
+   * Client_App.html
+   * Lógica cliente mínima para V1.
+   * - Render de vistas en #app-root
+   * - Navegación simple
+   * - Conexión con AppApi
+   */
+
+  (function () {
+    'use strict';
+
+    const ROOT_ID = 'app-root';
+
+    const MODULES = {
+      INC_TIC: 'inc_tic',
+      INC_GENERAL: 'inc_general',
+      COMPRES: 'compres',
+    };
+
+    const state = {
+      currentView: 'home',
+      currentModule: null, // inc_tic | inc_general | compres
+      currentUser: null,
+    };
+
+    function $(selector, scope) {
+      return (scope || document).querySelector(selector);
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getRoot() {
+      const root = document.getElementById(ROOT_ID);
+      if (!root) throw new Error(`No s'ha trobat #${ROOT_ID}.`);
+      return root;
+    }
+
+    function cloneTemplate(templateId) {
+      const tpl = document.getElementById(templateId);
+      if (!tpl) throw new Error(`No s'ha trobat template: ${templateId}`);
+      return tpl.content.cloneNode(true);
+    }
+
+    function setMessage(el, type, text) {
+      if (!el) return;
+      el.className = `message ${type || ''}`.trim();
+      el.textContent = text || '';
+      if (!text) el.classList.add('hidden');
+      else el.classList.remove('hidden');
+    }
+
+    function formatDate(value) {
+      if (!value) return '';
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return String(value);
+      return d.toLocaleString();
+    }
+
+    function renderHome() {
+      const root = getRoot();
+      root.innerHTML = '';
+      root.appendChild(cloneTemplate('view-home-template'));
+
+      state.currentView = 'home';
+      state.currentModule = null;
+    }
+
+    function getIncidenciesTitleByModule(modul) {
+      if (modul === MODULES.INC_TIC) return 'Incidències TIC';
+      if (modul === MODULES.INC_GENERAL) return 'Incidències generals';
+      return 'Incidències';
+    }
+
+    function getIncidenciesSubtitleByModule(modul) {
+      if (modul === MODULES.INC_TIC) return 'Registra i consulta incidències TIC.';
+      if (modul === MODULES.INC_GENERAL) return 'Registra i consulta incidències generals.';
+      return 'Registra una incidència de manera ràpida.';
+    }
+
+    async function renderIncidencies(modul) {
+      const root = getRoot();
+      root.innerHTML = '';
+      root.appendChild(cloneTemplate('view-incidencies-template'));
+
+      state.currentView = 'incidencies';
+      state.currentModule = modul;
+
+      const titleEl = $('#incidencies-title', root);
+      const subtitleEl = $('#incidencies-subtitle', root);
+
+      if (titleEl) titleEl.textContent = getIncidenciesTitleByModule(modul);
+      if (subtitleEl) subtitleEl.textContent = getIncidenciesSubtitleByModule(modul);
+
+      // Cargar listado inicial
+      await loadIncidenciesList(modul);
+
+      // Bind formulario
+      const form = $('#incidencies-form', root);
+      const messageEl = $('#incidencies-message', root);
+
+      if (form) {
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          setMessage(messageEl, '', '');
+
+          const payload = {
+            espai: $('#inc-espai', form)?.value || '',
+            element_afectat: $('#inc-element-afectat', form)?.value || '',
+            descripcio: $('#inc-descripcio', form)?.value || '',
+            observacions: $('#inc-observacions', form)?.value || '',
+          };
+
+          try {
+            await AppApi.createIncidencia(modul, payload);
+            form.reset();
+            setMessage(messageEl, 'success', 'Incidència creada correctament.');
+            await loadIncidenciesList(modul);
+          } catch (err) {
+            setMessage(messageEl, 'error', err.message || 'Error en crear la incidència.');
+          }
+        });
+      }
+    }
+
+    function renderIncidenciesList(rows) {
+      const container = $('#incidencies-list-container');
+      if (!container) return;
+
+      if (!rows || rows.length === 0) {
+        container.className = 'muted';
+        container.textContent = 'Encara no hi ha registres per mostrar.';
+        return;
+      }
+
+      const html = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Descripció</th>
+              <th>Estat</th>
+              <th>Última actualització</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${escapeHtml(r.id_registre)}</td>
+                <td>${escapeHtml(r.descripcio)}</td>
+                <td><span class="status">${escapeHtml(r.estat)}</span></td>
+                <td>${escapeHtml(formatDate(r.data_ultima_actualitzacio))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      container.className = '';
+      container.innerHTML = html;
+    }
+
+    async function loadIncidenciesList(modul) {
+      const container = $('#incidencies-list-container');
+
+      if (!state.currentUser || !state.currentUser.email) {
+        if (container) {
+          container.className = 'message error';
+          container.textContent = 'No s’ha pogut carregar l’usuari de sessió.';
+        }
+        return;
+      }
+
+      try {
+        const rows = await AppApi.listIncidencies(modul, {
+          email_sollicitant: state.currentUser.email,
+        });
+        renderIncidenciesList(Array.isArray(rows) ? rows : []);
+      } catch (err) {
+        if (container) {
+          container.className = 'message error';
+          container.textContent = err.message || 'Error carregant el llistat.';
+        }
+      }
+    }
+
+    async function renderCompres() {
+      const root = getRoot();
+      root.innerHTML = '';
+      root.appendChild(cloneTemplate('view-compres-template'));
+
+      state.currentView = 'compres';
+      state.currentModule = MODULES.COMPRES;
+
+      // Cargar listado inicial
+      await loadCompresList();
+
+      // Bind formulario
+      const form = $('#compres-form', root);
+      const messageEl = $('#compres-message', root);
+
+      if (form) {
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          setMessage(messageEl, '', '');
+
+          const payload = {
+            material_sollicitat: $('#comp-material', form)?.value || '',
+            espai: $('#comp-espai', form)?.value || '',
+            enllac_referencia: $('#comp-enllac', form)?.value || '',
+            observacions: $('#comp-observacions', form)?.value || '',
+          };
+
+          try {
+            await AppApi.createCompra(payload);
+            form.reset();
+            setMessage(messageEl, 'success', 'Sol·licitud creada correctament.');
+            await loadCompresList();
+          } catch (err) {
+            setMessage(messageEl, 'error', err.message || 'Error en crear la sol·licitud.');
+          }
+        });
+      }
+    }
+
+    function renderCompresList(rows) {
+      const container = $('#compres-list-container');
+      if (!container) return;
+
+      if (!rows || rows.length === 0) {
+        container.className = 'muted';
+        container.textContent = 'Encara no hi ha registres per mostrar.';
+        return;
+      }
+
+      const html = `
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Material</th>
+              <th>Estat</th>
+              <th>Última actualització</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${escapeHtml(r.id_registre)}</td>
+                <td>${escapeHtml(r.material_sollicitat)}</td>
+                <td><span class="status">${escapeHtml(r.estat)}</span></td>
+                <td>${escapeHtml(formatDate(r.data_ultima_actualitzacio))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      container.className = '';
+      container.innerHTML = html;
+    }
+
+    async function loadCompresList() {
+      const container = $('#compres-list-container');
+
+      if (!state.currentUser || !state.currentUser.email) {
+        if (container) {
+          container.className = 'message error';
+          container.textContent = 'No s’ha pogut carregar l’usuari de sessió.';
+        }
+        return;
+      }
+
+      try {
+        const rows = await AppApi.listCompres({
+          email_sollicitant: state.currentUser.email,
+        });
+        renderCompresList(Array.isArray(rows) ? rows : []);
+      } catch (err) {
+        if (container) {
+          container.className = 'message error';
+          container.textContent = err.message || 'Error carregant el llistat.';
+        }
+      }
+    }
+
+    async function navigateTo(target) {
+      if (target === MODULES.INC_TIC || target === MODULES.INC_GENERAL) {
+        await renderIncidencies(target);
+        return;
+      }
+      if (target === MODULES.COMPRES) {
+        await renderCompres();
+        return;
+      }
+      renderHome();
+    }
+
+    function setupGlobalNav() {
+      document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-nav]');
+        if (!btn) return;
+
+        const target = btn.getAttribute('data-nav');
+        navigateTo(target).catch((err) => {
+          console.error(err);
+          alert(err.message || 'Error de navegació.');
+        });
+      });
+    }
+
+    async function bootstrap() {
+      setupGlobalNav();
+
+      // Carga mínima de contexto (si falla, se informa en consola y sigue Home)
+      try {
+        state.currentUser = await AppApi.getCurrentUser();
+      } catch (err) {
+        console.error('No s’ha pogut carregar usuari actual:', err);
+      }
+
+      renderHome();
+    }
+
+    document.addEventListener('DOMContentLoaded', bootstrap);
+  })();
+</script>
